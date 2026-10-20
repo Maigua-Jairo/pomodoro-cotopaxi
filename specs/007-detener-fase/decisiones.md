@@ -47,3 +47,9 @@
 - **Pregunta:** Al confirmar «Detener» en el estudio, ¿el descanso corto empieza a correr solo?
 - **Respuesta:** No. Se muestra el descanso corto preparado y en pausa; el estudiante lo inicia cuando quiera. Sustituye la parte de D-01 y de la HU que decía que se iniciaba automáticamente.
 - **Motivo:** Decisión del usuario tras probar la función: mantener el mismo comportamiento que el resto de transiciones (HU-002), sin iniciar fases automáticamente.
+
+## D-09: Una sola pantalla para estudio y descanso
+
+- **Pregunta:** ¿El descanso se muestra en una pantalla aparte o en la misma pantalla principal?
+- **Respuesta:** Siempre en la misma pantalla principal: al detener el estudio, al terminar el estudio por tiempo y al abrir la aplicación desde la notificación. La pantalla «Descanso» deja de existir. El encabezado cambia con la fase: «Temporizador» / «Enfócate hoy, logra mañana» en estudio, y «Descanso corto» o «Descanso largo» / «Recarga energía para seguir» en descanso.
+- **Motivo:** Decisión del usuario: cambiar de fase sin cambiar de pantalla resulta más claro y continuo.

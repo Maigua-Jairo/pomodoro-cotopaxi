@@ -15,8 +15,7 @@ import {
 } from '@/notifications/pomodoro-notifications';
 
 function NotificationNavigationHandler() {
-  const { breakType, hydrationError, isHydrated, reportAlarmFailure, stopAlarm } =
-    usePomodoroTimer();
+  const { hydrationError, isHydrated, reportAlarmFailure, stopAlarm } = usePomodoroTimer();
   const hasPendingNotification = useRef(false);
   const [notificationResponseVersion, setNotificationResponseVersion] = useState(0);
 
@@ -45,11 +44,10 @@ function NotificationNavigationHandler() {
       reportAlarmFailure();
     }
     stopAlarm();
-    router.replace(breakType === null ? '/(tabs)' : '/descanso');
+    router.replace('/(tabs)');
     clearPomodoroNotificationResponse();
     hasPendingNotification.current = false;
   }, [
-    breakType,
     hydrationError,
     isHydrated,
     notificationResponseVersion,
@@ -61,8 +59,7 @@ function NotificationNavigationHandler() {
 }
 
 function PomodoroAlarmOverlay() {
-  const { alarmPhase, breakType, isAlarmActive, reportAlarmFailure, stopAlarm } =
-    usePomodoroTimer();
+  const { alarmPhase, isAlarmActive, reportAlarmFailure, stopAlarm } = usePomodoroTimer();
   const [appState, setAppState] = useState(AppState.currentState);
 
   useEffect(() => {
@@ -78,8 +75,8 @@ function PomodoroAlarmOverlay() {
       reportAlarmFailure();
     }
     stopAlarm();
-    router.replace(breakType === null ? '/(tabs)' : '/descanso');
-  }, [breakType, reportAlarmFailure, stopAlarm]);
+    router.replace('/(tabs)');
+  }, [reportAlarmFailure, stopAlarm]);
 
   useEffect(() => {
     if (!isAlarmActive || alarmPhase === null || appState !== 'active') {
@@ -124,7 +121,7 @@ function PomodoroAlarmOverlay() {
           accessibilityRole="button"
           onPress={() => {
             stopAlarm();
-            router.replace(breakType === null ? '/(tabs)' : '/descanso');
+            router.replace('/(tabs)');
           }}
           style={({ pressed }) => [styles.alarmButton, pressed && styles.alarmButtonPressed]}>
           <Text style={styles.alarmButtonText}>Detener</Text>

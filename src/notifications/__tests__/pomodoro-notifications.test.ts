@@ -11,12 +11,17 @@ import {
   getLastNotificationResponse,
 } from 'expo-notifications/build/NotificationsEmitter';
 import { PermissionStatus } from 'expo-modules-core';
+import { Platform } from 'react-native';
+import { setNotificationChannelAsync } from 'expo-notifications/build/setNotificationChannelAsync';
 
 import type { TimerPhase } from '@/domain/timer';
 import type { NotificationPermissionsStatus } from 'expo-notifications/build/NotificationPermissions.types';
 import {
   cancelPomodoroNotification,
   configurePomodoroNotificationHandler,
+  ensurePomodoroNotificationChannel,
+  POMODORO_NOTIFICATION_CHANNEL_ID,
+  POMODORO_VIBRATION_PATTERN,
   addPomodoroNotificationResponseListener,
   clearPomodoroNotificationResponse,
   hasInitialPomodoroCompletionResponse,
@@ -38,6 +43,13 @@ jest.mock('expo-notifications/build/NotificationsHandler', () => ({
 }));
 jest.mock('expo-notifications/build/Notifications.types', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
+  AndroidNotificationPriority: { MAX: 'max' },
+}));
+jest.mock('expo-notifications/build/NotificationChannelManager.types', () => ({
+  AndroidImportance: { MAX: 7 },
+}));
+jest.mock('expo-notifications/build/setNotificationChannelAsync', () => ({
+  setNotificationChannelAsync: jest.fn(),
 }));
 jest.mock('expo-notifications/build/scheduleNotificationAsync', () => ({
   scheduleNotificationAsync: jest.fn(),
@@ -139,10 +151,14 @@ describe('Pomodoro notifications', () => {
         title,
         body: 'La fase siguiente está lista para iniciar.',
         data: { type: 'pomodoro-phase-complete', phase },
+        sound: 'default',
+        vibrate: POMODORO_VIBRATION_PATTERN,
+        priority: 'max',
       },
       trigger: {
         type: SchedulableTriggerInputTypes.DATE,
         date: new Date(expiresAtEpochMs),
+        channelId: POMODORO_NOTIFICATION_CHANNEL_ID,
       },
     });
   });
@@ -164,7 +180,7 @@ describe('Pomodoro notifications', () => {
     expect(cancelScheduledNotificationAsync).toHaveBeenCalledWith('notification-1');
   });
 
-  it('configures foreground delivery to be suppressed and background delivery to be shown', () => {
+  it('configures foreground delivery to be suppressed and background delivery to be shown with sound', () => {
     expect(getPomodoroNotificationBehavior(true)).toEqual({
       shouldPlaySound: false,
       shouldSetBadge: false,
@@ -172,7 +188,7 @@ describe('Pomodoro notifications', () => {
       shouldShowList: false,
     });
     expect(getPomodoroNotificationBehavior(false)).toEqual({
-      shouldPlaySound: false,
+      shouldPlaySound: true,
       shouldSetBadge: false,
       shouldShowBanner: true,
       shouldShowList: true,
@@ -211,5 +227,55 @@ describe('Pomodoro notifications', () => {
     expect(handler).toHaveBeenCalledTimes(1);
     expect(subscription.remove).toBeDefined();
     expect(clearLastNotificationResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates a high-importance Android channel with sound and vibration', async () => {
+    const restore = jest.replaceProperty(Platform, 'OS', 'android');
+    try {
+      await ensurePomodoroNotificationChannel();
+    } finally {
+      restore.restore();
+    }
+
+    expect(setNotificationChannelAsync).toHaveBeenCalledWith(POMODORO_NOTIFICATION_CHANNEL_ID, {
+      name: 'Fin de fase del Pomodoro',
+      importance: 7,
+      sound: 'default',
+      vibrationPattern: POMODORO_VIBRATION_PATTERN,
+      enableVibrate: true,
+    });
+  });
+
+  it('does not create channels outside Android', async () => {
+    await ensurePomodoroNotificationChannel();
+
+    expect(setNotificationChannelAsync).not.toHaveBeenCalled();
+  });
+
+  it('creates the channel before asking for permission', async () => {
+    const restore = jest.replaceProperty(Platform, 'OS', 'android');
+    jest.mocked(getPermissionsAsync).mockResolvedValue(deniedPermissions);
+    try {
+      await requestPomodoroNotificationPermission();
+    } finally {
+      restore.restore();
+    }
+
+    expect(jest.mocked(setNotificationChannelAsync).mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(requestPermissionsAsync).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('makes sure the channel exists before scheduling on Android', async () => {
+    const restore = jest.replaceProperty(Platform, 'OS', 'android');
+    try {
+      await schedulePomodoroCompletionNotification('break', Date.now() + 60_000);
+    } finally {
+      restore.restore();
+    }
+
+    expect(jest.mocked(setNotificationChannelAsync).mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(scheduleNotificationAsync).mock.invocationCallOrder[0],
+    );
   });
 });

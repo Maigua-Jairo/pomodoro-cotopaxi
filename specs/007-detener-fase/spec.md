@@ -26,6 +26,7 @@ Como estudiante, quiero detener el estudio o el descanso en curso cuando lo nece
 - **RF-07:** CUANDO el estudiante cancele la confirmación de «Detener», EL SISTEMA conservará la fase, su tiempo restante y su estado de ejecución o pausa tal como estaban. Origen: HU-007, escenario «Cambiar de opinión al detener».
 - **RF-08:** CUANDO el estudiante confirme «Detener», EL SISTEMA no reproducirá la alarma de fin de fase y cancelará el aviso pendiente de la fase detenida. Origen: decisiones.md, D-06; HU-003 y HU-004.
 - **RF-09:** SI la fase llega a cero mientras el diálogo de «Detener» está abierto, ENTONCES EL SISTEMA aplicará el fin normal de la fase (alarma y fase siguiente preparada, según HU-002 y HU-004) y confirmar «Detener» después no tendrá ningún efecto. Origen: decisiones.md, D-07.
+- **RF-10:** EL SISTEMA mostrará el estudio y el descanso en la misma pantalla principal, actualizando en ella el temporizador, los controles y el encabezado según la fase, sin abrir otra pantalla; esto aplica al detener una fase, al terminar una fase por tiempo y al abrir la aplicación desde un aviso. Origen: decisiones.md, D-09.
 
 ## Requisitos no funcionales
 - **RNF-01:** La fase que queda tras detener se guarda como cualquier otra y se recupera correctamente si el estudiante cierra la aplicación. Origen: constitución, principio 6; HU-003.
@@ -49,7 +50,7 @@ Como estudiante, quiero detener el estudio o el descanso en curso cuando lo nece
 - Iniciar automáticamente el descanso tras detener el estudio (decisiones.md, D-08).
 
 ## Criterios de finalización
-- Los requisitos RF-01 a RF-09 y RNF-01 a RNF-02 pueden verificarse con los escenarios y casos límite descritos.
+- Los requisitos RF-01 a RF-10 y RNF-01 a RNF-02 pueden verificarse con los escenarios y casos límite descritos.
 - Cada escenario de HU-007 está cubierto por al menos un requisito funcional.
 
 ## Dudas abiertas

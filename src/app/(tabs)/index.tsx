@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import {
   Alert,
@@ -22,10 +22,10 @@ import { usePomodoroTimer } from '@/hooks/use-pomodoro-timer';
 export default function HomeScreen() {
   const {
     focusTimer,
+    breakTimer,
     pomodoroCount,
     cycleLength,
     breakType,
-    isAlarmActive,
     isHydrated,
     hydrationError,
     hasStartedSession,
@@ -37,49 +37,74 @@ export default function HomeScreen() {
     pauseFocus,
     resetFocus,
     stopFocus,
+    startBreak,
+    pauseBreak,
+    resetBreak,
+    stopBreak,
     recoverFromHydrationError,
     requestNotificationPermission,
   } = usePomodoroTimer();
-  const formattedTime = useMemo(
-    () => formatRemainingTime(focusTimer.remainingMs),
-    [focusTimer.remainingMs],
-  );
-  const isRunning = focusTimer.status === 'running';
-  const isPaused = focusTimer.status === 'paused';
-  const isFinished = focusTimer.status === 'finished';
-  const isResuming = isPaused && focusTimer.remainingMs < focusTimer.initialDurationMs;
+  const [breakMessage, setBreakMessage] = useState('');
+  const isBreak = breakType !== null;
+  const timer = isBreak ? breakTimer : focusTimer;
+  const formattedTime = useMemo(() => formatRemainingTime(timer.remainingMs), [timer.remainingMs]);
+  const isRunning = timer.status === 'running';
+  const isPaused = timer.status === 'paused';
+  const isFinished = timer.status === 'finished';
+  const isResuming = isPaused && timer.remainingMs < timer.initialDurationMs;
+  const breakLabel = breakType === 'long' ? 'Descanso largo' : 'Descanso corto';
 
-  useEffect(() => {
-    if (breakType !== null && !isAlarmActive) {
-      router.replace('/descanso');
+  const confirm = (title: string, message: string, action: string, onConfirm: () => void) => {
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: action, style: 'destructive', onPress: onConfirm },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  const handleReset = () =>
+    isBreak
+      ? confirm(
+          'Reiniciar descanso',
+          '¿Quieres volver al tiempo inicial del descanso y dejarlo pausado?',
+          'Reiniciar',
+          resetBreak,
+        )
+      : confirm(
+          'Reiniciar temporizador',
+          '¿Quieres volver al tiempo inicial de concentración?',
+          'Reiniciar',
+          resetFocus,
+        );
+
+  const handleStop = () =>
+    isBreak
+      ? confirm(
+          'Detener descanso',
+          'Volverás al estudio, listo para iniciar. ¿Quieres detener el descanso?',
+          'Detener',
+          stopBreak,
+        )
+      : confirm(
+          'Detener estudio',
+          'El estudio no contará como pomodoro y pasarás a un descanso corto. ¿Quieres detenerlo?',
+          'Detener',
+          stopFocus,
+        );
+
+  const handleBreakStart = () => {
+    if (isRunning) {
+      pauseBreak();
+      return;
     }
-  }, [breakType, isAlarmActive]);
-
-  const handleReset = () => {
-    Alert.alert(
-      'Reiniciar temporizador',
-      '¿Quieres volver al tiempo inicial de concentración?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Reiniciar', style: 'destructive', onPress: resetFocus },
-      ],
-      { cancelable: true },
-    );
+    setBreakMessage(startBreak() ? '' : 'No hay un descanso preparado para iniciar.');
   };
 
-  const handleStop = () => {
-    Alert.alert(
-      'Detener estudio',
-      'El estudio no contará como pomodoro y pasarás a un descanso corto. ¿Quieres detenerlo?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Detener', style: 'destructive', onPress: stopFocus },
-      ],
-      { cancelable: true },
-    );
-  };
-
-  const handleStart = () => {
+  const handleFocusStart = () => {
     if (isRunning) {
       pauseFocus();
       return;
@@ -107,22 +132,37 @@ export default function HomeScreen() {
     );
   };
 
-  const status = isRunning
-    ? 'Sesión en curso'
-    : isFinished
-      ? 'Sesión finalizada'
+  const status = isBreak
+    ? isRunning
+      ? 'Descanso en curso'
       : isResuming
-        ? 'Sesión pausada'
-        : 'Listo para concentrarte';
+        ? 'Descanso pausado'
+        : 'Listo para descansar'
+    : isRunning
+      ? 'Sesión en curso'
+      : isFinished
+        ? 'Sesión finalizada'
+        : isResuming
+          ? 'Sesión pausada'
+          : 'Listo para concentrarte';
+  const phaseName = isBreak ? 'descanso' : 'temporizador';
+  const startLabel = isRunning
+    ? 'Pausar'
+    : isFinished
+      ? 'Finalizado'
+      : isResuming
+        ? 'Reanudar'
+        : 'Iniciar';
   const openSettings = () => router.push('/ajustes');
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <BrandHeader
+          illustration={isBreak ? 'coffee' : 'school'}
           rightAction={{ icon: 'settings', accessibilityLabel: 'Abrir ajustes', onPress: openSettings }}
-          subtitle="Enfócate hoy, logra mañana"
-          title="Temporizador"
+          subtitle={isBreak ? 'Recarga energía para seguir' : 'Enfócate hoy, logra mañana'}
+          title={isBreak ? breakLabel : 'Temporizador'}
         />
 
         <View style={styles.content}>
@@ -181,38 +221,25 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                 }
-                phaseIcon="target"
-                phaseLabel="Estudio"
+                phaseIcon={isBreak ? 'coffee' : 'target'}
+                phaseLabel={isBreak ? breakLabel : 'Estudio'}
                 status={status}
                 time={formattedTime}
+                tone={isBreak ? 'break' : 'study'}
               />
 
               <View style={styles.controls}>
                 <ActionButton
-                  accessibilityLabel={
-                    isRunning
-                      ? 'Pausar temporizador'
-                      : isResuming
-                        ? 'Reanudar temporizador'
-                        : 'Iniciar temporizador'
-                  }
+                  accessibilityLabel={`${startLabel} ${phaseName}`}
                   disabled={isFinished}
                   icon={isRunning ? 'pause' : 'play'}
-                  label={
-                    isRunning
-                        ? 'Pausar'
-                        : isFinished
-                          ? 'Finalizado'
-                          : isResuming
-                            ? 'Reanudar'
-                            : 'Iniciar'
-                  }
-                  onPress={handleStart}
+                  label={isBreak && !isFinished ? `${startLabel} descanso` : startLabel}
+                  onPress={isBreak ? handleBreakStart : handleFocusStart}
                 />
 
                 {(isRunning || isResuming) && (
                   <ActionButton
-                    accessibilityLabel="Detener estudio"
+                    accessibilityLabel={isBreak ? 'Detener descanso' : 'Detener estudio'}
                     icon="stop"
                     label="Detener"
                     onPress={handleStop}
@@ -220,16 +247,22 @@ export default function HomeScreen() {
                   />
                 )}
 
-                {!isFinished && (
+                {(isBreak ? isRunning || isResuming : !isFinished) && (
                   <ActionButton
-                    accessibilityLabel="Reiniciar temporizador"
+                    accessibilityLabel={`Reiniciar ${phaseName}`}
                     icon="restart"
-                    label="Reiniciar"
+                    label={isBreak ? 'Reiniciar descanso' : 'Reiniciar'}
                     onPress={handleReset}
                     variant="danger"
                   />
                 )}
               </View>
+
+              {isBreak && breakMessage !== '' && (
+                <Text accessibilityLiveRegion="polite" style={styles.breakMessage}>
+                  {breakMessage}
+                </Text>
+              )}
             </>
           )}
         </View>
@@ -240,7 +273,13 @@ export default function HomeScreen() {
           </Text>
         )}
 
-        <ScreenFooter message="Puedes pausar y continuar cuando lo necesites." />
+        <ScreenFooter
+          message={
+            isBreak
+              ? 'Un buen descanso también es parte del estudio.'
+              : 'Puedes pausar y continuar cuando lo necesites.'
+          }
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -325,6 +364,14 @@ const styles = StyleSheet.create({
     color: BRAND.midnightBlue,
     fontSize: 16,
     fontWeight: '700',
+  },
+  breakMessage: {
+    borderLeftColor: BRAND.crimson,
+    borderLeftWidth: 4,
+    color: BRAND.black,
+    fontSize: 15,
+    fontWeight: '600',
+    paddingLeft: 8,
   },
   discreetNotice: {
     alignSelf: 'center',

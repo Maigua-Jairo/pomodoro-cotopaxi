@@ -1,6 +1,6 @@
 # Tareas: Detener una fase y pasar a la siguiente
 
-Ejecutar en orden. En las tareas de lógica las pruebas se escriben primero y deben fallar antes de implementar. Las de interfaz se verifican manualmente en Expo Go con la lista de `rn-conventions`. Total: 5 tareas.
+Ejecutar en orden. En las tareas de lógica las pruebas se escriben primero y deben fallar antes de implementar. Las de interfaz se verifican manualmente en Expo Go con la lista de `rn-conventions`. Total: 6 tareas.
 
 - [x] **T1. Transiciones puras de detener.** RF-03, RF-05, RF-06, RF-09
   - Archivos: `src/domain/timer.ts`, `src/domain/__tests__/timer.test.ts`.
@@ -18,7 +18,11 @@ Ejecutar en orden. En las tareas de lógica las pruebas se escriben primero y de
   - Archivos: `src/app/descanso.tsx`.
   - Hecho cuando: en Expo Go «Detener» aparece solo con el descanso iniciado, pide la confirmación de RF-05, «Cancelar» deja el descanso igual y «Detener» vuelve al estudio nuevo y pausado; tras un descanso largo el inicio muestra «Pomodoros: 0/N».
 
-- [ ] **T5. Verificación final.** RF-01–RF-09; RNF-01, RNF-02
+- [ ] **T6. Una sola pantalla para estudio y descanso.** RF-04, RF-05, RF-10
+  - Archivos: `src/app/(tabs)/index.tsx`, `src/app/_layout.tsx`, `src/app/descanso.tsx` (se elimina).
+  - Hecho cuando: en Expo Go el descanso aparece en la pantalla principal (al detener, al terminar el estudio por tiempo y al abrir desde el aviso), con el encabezado y los controles de la fase, sin abrir otra pantalla; pasan `npx jest`, `npx expo lint` y `npx tsc --noEmit`.
+
+- [ ] **T5. Verificación final.** RF-01–RF-10; RNF-01, RNF-02
   - Archivos: pruebas de `src/domain/` y `src/hooks/`.
   - Hecho cuando: pasan `npx jest`, `npx expo lint` y `npx tsc --noEmit`, y el usuario confirma en Expo Go:
     - Los casos límite de la spec.
