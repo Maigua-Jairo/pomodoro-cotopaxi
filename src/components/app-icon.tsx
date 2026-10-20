@@ -7,6 +7,7 @@ type SymbolName = Exclude<ComponentProps<typeof SymbolView>['name'], string>;
 const ICONS = {
   play: { ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' },
   pause: { ios: 'pause.fill', android: 'pause', web: 'pause' },
+  stop: { ios: 'stop.fill', android: 'stop', web: 'stop' },
   restart: { ios: 'arrow.clockwise', android: 'restart_alt', web: 'restart_alt' },
   settings: { ios: 'gearshape.fill', android: 'settings', web: 'settings' },
   chevronRight: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },

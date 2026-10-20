@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { router } from 'expo-router';
 import {
   Alert,
@@ -35,10 +35,10 @@ export default function HomeScreen() {
     startFocus,
     pauseFocus,
     resetFocus,
+    stopFocus,
     recoverFromHydrationError,
     requestNotificationPermission,
   } = usePomodoroTimer();
-  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const formattedTime = useMemo(
     () => formatRemainingTime(focusTimer.remainingMs),
     [focusTimer.remainingMs],
@@ -66,6 +66,18 @@ export default function HomeScreen() {
     );
   };
 
+  const handleStop = () => {
+    Alert.alert(
+      'Detener estudio',
+      'El estudio no contará como pomodoro y empezará un descanso corto. ¿Quieres detenerlo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Detener', style: 'destructive', onPress: stopFocus },
+      ],
+      { cancelable: true },
+    );
+  };
+
   const handleStart = () => {
     if (isRunning) {
       pauseFocus();
@@ -83,13 +95,10 @@ export default function HomeScreen() {
         {
           text: 'Continuar',
           onPress: () => {
-            setIsRequestingPermission(true);
-            requestNotificationPermission()
-              .then(() => startFocus())
-              .catch(() => {
-                startFocus();
-              })
-              .finally(() => setIsRequestingPermission(false));
+            startFocus();
+            requestNotificationPermission().catch(() => {
+              // El proveedor ya muestra el aviso de error; el temporizador sigue corriendo.
+            });
           },
         },
       ],
@@ -186,12 +195,10 @@ export default function HomeScreen() {
                         ? 'Reanudar temporizador'
                         : 'Iniciar temporizador'
                   }
-                  disabled={isFinished || isRequestingPermission}
+                  disabled={isFinished}
                   icon={isRunning ? 'pause' : 'play'}
                   label={
-                    isRequestingPermission
-                      ? 'Solicitando permiso…'
-                      : isRunning
+                    isRunning
                         ? 'Pausar'
                         : isFinished
                           ? 'Finalizado'
@@ -201,6 +208,16 @@ export default function HomeScreen() {
                   }
                   onPress={handleStart}
                 />
+
+                {(isRunning || isResuming) && (
+                  <ActionButton
+                    accessibilityLabel="Detener estudio"
+                    icon="stop"
+                    label="Detener"
+                    onPress={handleStop}
+                    variant="secondary"
+                  />
+                )}
 
                 {!isFinished && (
                   <ActionButton

@@ -12,7 +12,7 @@ import { formatRemainingTime } from '@/domain/timer';
 import { usePomodoroTimer } from '@/hooks/use-pomodoro-timer';
 
 export default function BreakScreen() {
-  const { breakTimer, breakType, isAlarmActive, startBreak, pauseBreak, resetBreak } =
+  const { breakTimer, breakType, isAlarmActive, startBreak, pauseBreak, resetBreak, stopBreak } =
     usePomodoroTimer();
   const [validationMessage, setValidationMessage] = useState('');
   const formattedTime = formatRemainingTime(breakTimer.remainingMs);
@@ -39,6 +39,18 @@ export default function BreakScreen() {
       return;
     }
     setValidationMessage('');
+  };
+
+  const handleStopBreak = () => {
+    Alert.alert(
+      'Detener descanso',
+      'Volverás al estudio, listo para iniciar. ¿Quieres detener el descanso?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Detener', style: 'destructive', onPress: stopBreak },
+      ],
+      { cancelable: true },
+    );
   };
 
   const handleResetBreak = () => {
@@ -82,6 +94,16 @@ export default function BreakScreen() {
             )}
 
             {isRunning && <ActionButton icon="pause" label="Pausar descanso" onPress={pauseBreak} />}
+
+            {(isRunning || (isPaused && hasElapsed)) && (
+              <ActionButton
+                accessibilityLabel="Detener descanso"
+                icon="stop"
+                label="Detener"
+                onPress={handleStopBreak}
+                variant="secondary"
+              />
+            )}
 
             {(isRunning || (isPaused && hasElapsed)) && (
               <ActionButton

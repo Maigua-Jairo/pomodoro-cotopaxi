@@ -18,12 +18,15 @@ import {
   createFocusTimer,
   createPomodoroCycle,
   createPreparedBreakTimer,
+  isPhaseStarted,
   pauseTimer,
   prepareFocusAfterBreak,
   reconcileTimer,
   restoreTimerFromExpiry,
   startPomodoroCycle,
   startTimer,
+  stopBreakPhase,
+  stopFocusPhase,
   type BreakType,
   type PomodoroCycleState,
   type TimerPhase,
@@ -68,6 +71,8 @@ interface PomodoroTimerContextValue {
   startFocus: () => void;
   pauseFocus: () => void;
   resetFocus: () => void;
+  stopFocus: () => void;
+  stopBreak: () => void;
   saveSettings: (settings: PomodoroSettings) => Promise<SaveSettingsResult>;
   resetSettings: () => Promise<SaveSettingsResult>;
   startBreak: () => boolean;
@@ -95,6 +100,7 @@ export interface PomodoroTimerState {
   alarmPhase: TimerPhase | null;
   notificationStatus: 'idle' | 'scheduled' | 'unavailable' | 'failed';
   notificationMessage: string | null;
+  permissionVersion: number;
   isHydrated: boolean;
   canPersistCycle: boolean;
   canPersistSession: boolean;
@@ -122,6 +128,8 @@ export type PomodoroTimerAction =
   | { type: 'start-focus'; now: number; expiresAtEpochMs: number }
   | { type: 'pause-focus'; now: number }
   | { type: 'reset-focus' }
+  | { type: 'stop-focus'; now: number; nowEpochMs: number }
+  | { type: 'stop-break'; now: number }
   | { type: 'start-break'; now: number; expiresAtEpochMs: number }
   | { type: 'pause-break'; now: number }
   | { type: 'reset-break' }
@@ -136,6 +144,7 @@ export type PomodoroTimerAction =
       expiresAtEpochMs: number | null;
       message: string;
     }
+  | { type: 'notification-permission-granted' }
   | { type: 'alarm-failed'; message: string }
   | { type: 'notification-cleared'; notificationId: string }
   | { type: 'alarm-started'; phase: TimerPhase }
@@ -163,6 +172,7 @@ export function createInitialState(): PomodoroTimerState {
     alarmPhase: null,
     notificationStatus: 'idle',
     notificationMessage: null,
+    permissionVersion: 0,
     isHydrated: false,
     canPersistCycle: false,
     canPersistSession: false,
@@ -368,6 +378,47 @@ export function pomodoroTimerReducer(
         expiresAtEpochMs: null,
         notificationId: null,
       };
+    case 'stop-focus': {
+      if (!state.isHydrated || state.hydrationError !== null || state.breakType !== null) {
+        return state;
+      }
+
+      const stopped = stopFocusPhase(
+        state.focusTimer,
+        state.cycle,
+        state.settings.shortBreakMinutes,
+        action.now,
+      );
+      if (stopped === null) {
+        return state;
+      }
+
+      return {
+        ...state,
+        ...stopped,
+        canPersistSession: true,
+        expiresAtEpochMs: action.nowEpochMs + stopped.breakTimer.remainingMs,
+        notificationId: null,
+      };
+    }
+    case 'stop-break': {
+      if (
+        state.breakType === null ||
+        !isPhaseStarted(state.breakTimer) ||
+        reconcileTimer(state.breakTimer, action.now).status === 'finished'
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+        ...stopBreakPhase(state.cycle, state.breakType, state.settings.focusMinutes * MINUTE_MS),
+        breakType: null,
+        canPersistSession: true,
+        expiresAtEpochMs: null,
+        notificationId: null,
+      };
+    }
     case 'start-break': {
       if (!state.isHydrated || state.hydrationError !== null || state.breakType === null) {
         return state;
@@ -435,6 +486,14 @@ export function pomodoroTimerReducer(
         ...state,
         notificationStatus: action.type === 'notification-unavailable' ? 'unavailable' : 'failed',
         notificationMessage: action.message,
+      };
+    case 'notification-permission-granted':
+      return {
+        ...state,
+        permissionVersion: state.permissionVersion + 1,
+        ...(state.notificationStatus === 'unavailable'
+          ? { notificationStatus: 'idle' as const, notificationMessage: null }
+          : {}),
       };
     case 'alarm-failed':
       return {
@@ -708,6 +767,7 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
     runningPhase,
     state.breakTimer.status,
     state.expiresAtEpochMs,
+    state.permissionVersion,
     state.focusTimer.status,
     state.hydrationError,
     state.isHydrated,
@@ -749,6 +809,14 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
 
   const resetFocus = useCallback(() => {
     dispatch({ type: 'reset-focus' });
+  }, []);
+
+  const stopFocus = useCallback(() => {
+    dispatch({ type: 'stop-focus', now: performance.now(), nowEpochMs: Date.now() });
+  }, []);
+
+  const stopBreak = useCallback(() => {
+    dispatch({ type: 'stop-break', now: performance.now() });
   }, []);
 
   const saveSettings = useCallback(
@@ -816,7 +884,9 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
   const requestNotificationPermission = useCallback(async () => {
     try {
       const granted = await requestPomodoroNotificationPermission();
-      if (!granted) {
+      if (granted) {
+        dispatch({ type: 'notification-permission-granted' });
+      } else {
         dispatch({
           type: 'notification-unavailable',
           expiresAtEpochMs: null,
@@ -870,6 +940,8 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
       startFocus,
       pauseFocus,
       resetFocus,
+      stopFocus,
+      stopBreak,
       saveSettings,
       resetSettings,
       startBreak,
@@ -885,6 +957,8 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
       resetSettings,
       saveSettings,
       startBreak,
+      stopBreak,
+      stopFocus,
       startFocus,
       pauseFocus,
       pauseBreak,

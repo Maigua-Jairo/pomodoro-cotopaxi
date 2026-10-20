@@ -24,6 +24,8 @@ import {
   restoreTimerFromExpiry,
   startPomodoroCycle,
   startTimer,
+  stopBreakPhase,
+  stopFocusPhase,
 } from '../timer';
 
 const STARTED_AT = 10_000;
@@ -442,5 +444,61 @@ describe('Pomodoro phase transitions', () => {
     expect(completeFocusPhase(finishedFocus, cycle)).toEqual(
       completeFocusPhase(finishedFocus, cycle),
     );
+  });
+});
+
+describe('stopping a phase', () => {
+  const MINUTE = 60_000;
+
+  it('starts a short break without counting a pomodoro when a running study is stopped', () => {
+    const cycle = startPomodoroCycle(createPomodoroCycle(3, 4));
+    const running = startTimer(createFocusTimer(25 * MINUTE), STARTED_AT);
+    const now = STARTED_AT + 5 * MINUTE;
+
+    expect(stopFocusPhase(running, cycle, 7, now)).toEqual({
+      focusTimer: { ...running, status: 'finished', remainingMs: 0, startedAt: null },
+      breakTimer: startTimer(createPreparedBreakTimer(7), now),
+      breakType: 'short',
+      cycle,
+    });
+  });
+
+  it('also stops a study paused after it started', () => {
+    const paused = pauseTimer(startTimer(createFocusTimer(25 * MINUTE), STARTED_AT), STARTED_AT + MINUTE);
+    const result = stopFocusPhase(paused, createPomodoroCycle(), 5, STARTED_AT + 2 * MINUTE);
+
+    expect(result?.breakTimer.status).toBe('running');
+    expect(result?.breakType).toBe('short');
+  });
+
+  it('does not stop a prepared study', () => {
+    expect(stopFocusPhase(createFocusTimer(), createPomodoroCycle(), 5, STARTED_AT)).toBeNull();
+  });
+
+  it('does not stop a study whose time already ran out', () => {
+    const running = startTimer(createFocusTimer(MINUTE), STARTED_AT);
+    expect(stopFocusPhase(running, createPomodoroCycle(), 5, STARTED_AT + MINUTE)).toBeNull();
+  });
+
+  it('returns to a new paused study and keeps the cycle after a short break', () => {
+    const cycle = startPomodoroCycle(createPomodoroCycle(2, 4));
+
+    expect(stopBreakPhase(cycle, 'short', 30 * MINUTE)).toEqual({
+      focusTimer: createFocusTimer(30 * MINUTE),
+      breakTimer: createBreakTimer(),
+      cycle,
+    });
+  });
+
+  it('finishes the cycle with the configured goal when a long break is stopped', () => {
+    const cycle = { ...startPomodoroCycle(createPomodoroCycle(0, 4)), configuredCycleLength: 6 };
+    const result = stopBreakPhase(cycle, 'long', 25 * MINUTE);
+
+    expect(result.cycle).toEqual({
+      pomodoroCount: 0,
+      activeCycleLength: 6,
+      configuredCycleLength: 6,
+      hasStarted: false,
+    });
   });
 });

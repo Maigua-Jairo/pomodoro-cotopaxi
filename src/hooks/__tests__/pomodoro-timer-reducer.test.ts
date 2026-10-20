@@ -5,6 +5,11 @@ import {
   createInitialState,
   pomodoroTimerReducer,
 } from '../use-pomodoro-timer';
+import {
+  createPreparedBreakTimer,
+  startPomodoroCycle,
+  startTimer,
+} from '@/domain/timer';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -34,5 +39,96 @@ describe('storage save failure notice', () => {
     expect(
       pomodoroTimerReducer(dismissed, { type: 'storage-save-failed' }).storageMessage,
     ).toBe(STORAGE_SAVE_FAILED_MESSAGE);
+  });
+});
+
+describe('stopping a phase', () => {
+  const MINUTE = 60_000;
+  const hydrated = { ...createInitialState(), isHydrated: true };
+  const studying = {
+    ...hydrated,
+    focusTimer: startTimer(hydrated.focusTimer, 0),
+    cycle: startPomodoroCycle(hydrated.cycle),
+    expiresAtEpochMs: 1_000_000,
+    notificationId: 'focus-notification',
+  };
+
+  it('starts a short break without the alarm and reschedules its notice', () => {
+    const next = pomodoroTimerReducer(studying, {
+      type: 'stop-focus',
+      now: 5 * MINUTE,
+      nowEpochMs: 2_000_000,
+    });
+
+    expect(next.breakType).toBe('short');
+    expect(next.breakTimer).toEqual(startTimer(createPreparedBreakTimer(5), 5 * MINUTE));
+    expect(next.focusTimer.status).toBe('finished');
+    expect(next.cycle.pomodoroCount).toBe(0);
+    expect(next.expiresAtEpochMs).toBe(2_000_000 + 5 * MINUTE);
+    expect(next.notificationId).toBeNull();
+    expect(next.isAlarmActive).toBe(false);
+    expect(next.canPersistSession).toBe(true);
+  });
+
+  it('does nothing when the study already ran out while the dialog was open', () => {
+    expect(
+      pomodoroTimerReducer(studying, { type: 'stop-focus', now: 25 * MINUTE, nowEpochMs: 0 }),
+    ).toBe(studying);
+  });
+
+  it('does nothing for a study that was not started', () => {
+    expect(pomodoroTimerReducer(hydrated, { type: 'stop-focus', now: 0, nowEpochMs: 0 })).toBe(
+      hydrated,
+    );
+  });
+
+  it('returns to a prepared study without the alarm when a break is stopped', () => {
+    const onBreak = pomodoroTimerReducer(studying, {
+      type: 'stop-focus',
+      now: 5 * MINUTE,
+      nowEpochMs: 2_000_000,
+    });
+    const next = pomodoroTimerReducer(onBreak, { type: 'stop-break', now: 6 * MINUTE });
+
+    expect(next.breakType).toBeNull();
+    expect(next.focusTimer).toEqual(createInitialState().focusTimer);
+    expect(next.breakTimer.initialDurationMs).toBe(0);
+    expect(next.expiresAtEpochMs).toBeNull();
+    expect(next.notificationId).toBeNull();
+    expect(next.isAlarmActive).toBe(false);
+  });
+
+  it('does nothing when the break already ran out', () => {
+    const onBreak = pomodoroTimerReducer(studying, {
+      type: 'stop-focus',
+      now: 5 * MINUTE,
+      nowEpochMs: 2_000_000,
+    });
+    expect(pomodoroTimerReducer(onBreak, { type: 'stop-break', now: 10 * MINUTE })).toBe(onBreak);
+  });
+});
+
+describe('notification permission granted after starting', () => {
+  it('clears the unavailable notice and asks to schedule the notice again', () => {
+    const unavailable = pomodoroTimerReducer(
+      { ...createInitialState(), isHydrated: true },
+      { type: 'notification-unavailable', expiresAtEpochMs: null, message: 'Desactivadas' },
+    );
+    const next = pomodoroTimerReducer(unavailable, { type: 'notification-permission-granted' });
+
+    expect(next.notificationMessage).toBeNull();
+    expect(next.notificationStatus).toBe('idle');
+    expect(next.permissionVersion).toBe(unavailable.permissionVersion + 1);
+  });
+
+  it('keeps a scheduling failure message visible', () => {
+    const failed = pomodoroTimerReducer(
+      { ...createInitialState(), isHydrated: true },
+      { type: 'notification-failed', expiresAtEpochMs: null, message: 'Fallo' },
+    );
+
+    expect(
+      pomodoroTimerReducer(failed, { type: 'notification-permission-granted' }).notificationMessage,
+    ).toBe('Fallo');
   });
 });

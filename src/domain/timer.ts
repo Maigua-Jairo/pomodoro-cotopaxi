@@ -318,6 +318,46 @@ export function getFocusTimerAfterBreak(
   return action === 'start-focus' ? startTimer(resetFocusTimer, now) : resetFocusTimer;
 }
 
+export function isPhaseStarted(timer: TimerState): boolean {
+  return (
+    timer.status === 'running' ||
+    (timer.status === 'paused' && timer.remainingMs < timer.initialDurationMs)
+  );
+}
+
+export function stopFocusPhase(
+  focusTimer: TimerState,
+  cycle: PomodoroCycleState,
+  shortBreakMinutes: number,
+  now: number,
+): FocusCompletionResult & { focusTimer: TimerState } | null {
+  if (focusTimer.phase !== 'focus' || !isPhaseStarted(focusTimer)) {
+    return null;
+  }
+  if (reconcileTimer(focusTimer, now).status === 'finished') {
+    return null;
+  }
+
+  return {
+    focusTimer: { ...focusTimer, status: 'finished', remainingMs: 0, startedAt: null },
+    breakTimer: startTimer(createPreparedBreakTimer(shortBreakMinutes), now),
+    breakType: 'short',
+    cycle,
+  };
+}
+
+export function stopBreakPhase(
+  cycle: PomodoroCycleState,
+  breakType: BreakType,
+  focusDurationMs: number,
+): { focusTimer: TimerState; breakTimer: TimerState; cycle: PomodoroCycleState } {
+  return {
+    focusTimer: createFocusTimer(focusDurationMs),
+    breakTimer: createBreakTimer(),
+    cycle: completePomodoroBreak(cycle, breakType),
+  };
+}
+
 export function cancelReset(timer: TimerState): TimerState {
   return timer;
 }
