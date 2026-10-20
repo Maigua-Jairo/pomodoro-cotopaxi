@@ -15,9 +15,11 @@ jest.mock('expo-audio', () => ({
 
 const playMock = jest.fn<() => void>();
 const removeMock = jest.fn<() => void>();
+const pauseMock = jest.fn<() => void>();
 const player: ReturnType<typeof createAudioPlayer> = Object.assign(Object.create(null), {
   loop: false,
   play: playMock,
+  pause: pauseMock,
   remove: removeMock,
 });
 
@@ -73,5 +75,33 @@ describe('Pomodoro alarm', () => {
 
   it('stops automatically after 3 seconds without interaction', () => {
     expect(ALARM_AUTO_STOP_MS).toBe(3_000);
+  });
+
+  it('pauses and disables looping before releasing the player', async () => {
+    await startPomodoroAlarm();
+
+    stopPomodoroAlarm();
+
+    expect(player.loop).toBe(false);
+    expect(pauseMock).toHaveBeenCalledTimes(1);
+    expect(pauseMock.mock.invocationCallOrder[0]).toBeLessThan(
+      removeMock.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('stops itself after the auto-stop time even if nobody stops it', async () => {
+    jest.useFakeTimers();
+    try {
+      await startPomodoroAlarm();
+      jest.advanceTimersByTime(ALARM_AUTO_STOP_MS - 1);
+      expect(removeMock).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1);
+      expect(pauseMock).toHaveBeenCalledTimes(1);
+      expect(removeMock).toHaveBeenCalledTimes(1);
+      expect(Vibration.cancel).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

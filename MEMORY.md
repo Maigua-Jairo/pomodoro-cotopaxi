@@ -9,7 +9,7 @@ Estado del trabajo entre sesiones.
 - HU-005 cerrada: T1–T10 completadas y verificadas por el usuario en Expo Go; spec 005 en estado «implementada» (104 pruebas, lint y TypeScript pasan).
 - HU-006 cerrada: T1–T6 completadas y verificadas por el usuario en Expo Go; spec 006 en estado «implementada» (112 pruebas, lint y TypeScript pasan).
 - HU-007: T1–T2 completadas; D-08 aplicado (al detener el estudio el descanso queda en pausa). D-09: estudio y descanso en una sola pantalla (se eliminó la ruta /descanso). T3, T4 y T6 implementadas, pendientes de verificación manual; T5 pendiente. 125 pruebas, lint y TypeScript pasan.
-- Spec 004, V-03: corregida la notificación en segundo plano (sonido, vibración y canal de Android). 129 pruebas pasan; pendiente de verificar en dispositivo.
+- Spec 004, V-03 y V-04: notificación en segundo plano con sonido, vibración y canal de Android; la alarma en primer plano ahora se detiene (pausa antes de liberar y apagado propio a los 3 s). 131 pruebas pasan; pendiente de verificar en dispositivo.
 - Spec 004, D-08: el aviso de notificaciones no disponibles pasó del banner rojo superior a un texto discreto al pie de la pantalla principal.
 
 ## Próximos pasos

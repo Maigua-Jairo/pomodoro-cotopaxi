@@ -8,6 +8,7 @@ const alarmAudio = require('../../assets/audio/pomodoro-alarm.wav');
 
 let player: AudioPlayer | null = null;
 let vibrationInterval: ReturnType<typeof setInterval> | null = null;
+let autoStopTimeout: ReturnType<typeof setTimeout> | null = null;
 let alarmGeneration = 0;
 
 export async function startPomodoroAlarm(): Promise<void> {
@@ -30,6 +31,7 @@ export async function startPomodoroAlarm(): Promise<void> {
       Vibration.vibrate(vibrationPattern);
     }, vibrationIntervalMs);
     player.play();
+    autoStopTimeout = setTimeout(stopPomodoroAlarm, ALARM_AUTO_STOP_MS);
   } catch (error: unknown) {
     if (generation === alarmGeneration) {
       stopPomodoroAlarm();
@@ -40,6 +42,11 @@ export async function startPomodoroAlarm(): Promise<void> {
 
 export function stopPomodoroAlarm(): void {
   alarmGeneration += 1;
+
+  if (autoStopTimeout !== null) {
+    clearTimeout(autoStopTimeout);
+    autoStopTimeout = null;
+  }
 
   if (player === null && vibrationInterval === null) {
     return;
@@ -56,6 +63,11 @@ export function stopPomodoroAlarm(): void {
   try {
     Vibration.cancel();
   } finally {
-    activePlayer?.remove();
+    if (activePlayer !== null) {
+      // remove() libera el reproductor, pero no garantiza cortar un sonido en bucle.
+      activePlayer.loop = false;
+      activePlayer.pause();
+      activePlayer.remove();
+    }
   }
 }
