@@ -450,14 +450,14 @@ describe('Pomodoro phase transitions', () => {
 describe('stopping a phase', () => {
   const MINUTE = 60_000;
 
-  it('starts a short break without counting a pomodoro when a running study is stopped', () => {
+  it('prepares a paused short break without counting a pomodoro when a running study is stopped', () => {
     const cycle = startPomodoroCycle(createPomodoroCycle(3, 4));
     const running = startTimer(createFocusTimer(25 * MINUTE), STARTED_AT);
     const now = STARTED_AT + 5 * MINUTE;
 
     expect(stopFocusPhase(running, cycle, 7, now)).toEqual({
       focusTimer: { ...running, status: 'finished', remainingMs: 0, startedAt: null },
-      breakTimer: startTimer(createPreparedBreakTimer(7), now),
+      breakTimer: createPreparedBreakTimer(7),
       breakType: 'short',
       cycle,
     });
@@ -467,7 +467,7 @@ describe('stopping a phase', () => {
     const paused = pauseTimer(startTimer(createFocusTimer(25 * MINUTE), STARTED_AT), STARTED_AT + MINUTE);
     const result = stopFocusPhase(paused, createPomodoroCycle(), 5, STARTED_AT + 2 * MINUTE);
 
-    expect(result?.breakTimer.status).toBe('running');
+    expect(result?.breakTimer.status).toBe('paused');
     expect(result?.breakType).toBe('short');
   });
 

@@ -340,7 +340,7 @@ export function stopFocusPhase(
 
   return {
     focusTimer: { ...focusTimer, status: 'finished', remainingMs: 0, startedAt: null },
-    breakTimer: startTimer(createPreparedBreakTimer(shortBreakMinutes), now),
+    breakTimer: createPreparedBreakTimer(shortBreakMinutes),
     breakType: 'short',
     cycle,
   };

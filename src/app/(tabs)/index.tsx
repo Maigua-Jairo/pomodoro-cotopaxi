@@ -30,6 +30,7 @@ export default function HomeScreen() {
     hydrationError,
     hasStartedSession,
     settingsMessage,
+    notificationMessage,
     storageMessage,
     dismissStorageMessage,
     startFocus,
@@ -69,7 +70,7 @@ export default function HomeScreen() {
   const handleStop = () => {
     Alert.alert(
       'Detener estudio',
-      'El estudio no contará como pomodoro y empezará un descanso corto. ¿Quieres detenerlo?',
+      'El estudio no contará como pomodoro y pasarás a un descanso corto. ¿Quieres detenerlo?',
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Detener', style: 'destructive', onPress: stopFocus },
@@ -233,6 +234,12 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {notificationMessage !== null && (
+          <Text accessibilityLiveRegion="polite" style={styles.discreetNotice}>
+            {notificationMessage}
+          </Text>
+        )}
+
         <ScreenFooter message="Puedes pausar y continuar cuando lo necesites." />
       </ScrollView>
     </SafeAreaView>
@@ -318,6 +325,14 @@ const styles = StyleSheet.create({
     color: BRAND.midnightBlue,
     fontSize: 16,
     fontWeight: '700',
+  },
+  discreetNotice: {
+    alignSelf: 'center',
+    color: BRAND.secondaryText,
+    fontSize: 12,
+    maxWidth: 560,
+    paddingHorizontal: 32,
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.8,

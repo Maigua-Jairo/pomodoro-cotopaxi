@@ -41,3 +41,9 @@
 - **Pregunta:** ¿Qué debe mostrar la aplicación cuando el estudiante detiene el aviso?
 - **Respuesta:** Se conserva lo definido en HU-003: se abre la aplicación con la siguiente fase preparada y pausada.
 - **Motivo:** Mantener las transiciones del ciclo de HU-002 y no iniciar la fase siguiente sin una acción explícita.
+
+## D-08: Ubicación del aviso de notificaciones no disponibles
+
+- **Pregunta:** ¿Dónde y cómo se muestra el aviso de que las notificaciones o la alarma no están disponibles?
+- **Respuesta:** Se elimina el aviso rojo superior. El mensaje se muestra en la parte inferior de la pantalla principal, con un estilo discreto (texto pequeño y secundario).
+- **Motivo:** Decisión del usuario: el aviso superior era demasiado llamativo para una situación que no impide usar el temporizador.

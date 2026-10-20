@@ -33,7 +33,7 @@ stopBreakPhase(cycle, breakType, focusDurationMs)
 - `stopFocusPhase` devuelve `null` si el estudio no está iniciado o si, reconciliado con `now`, ya llegó a cero (RF-09). Si no:
   - El estudio queda `finished` con `remainingMs = 0`, como al terminar normalmente.
   - El ciclo no cambia: no suma pomodoro (D-01).
-  - El descanso es corto, con la duración de los ajustes, y queda iniciado con `startTimer(…, now)` (RF-03).
+  - El descanso es corto, con la duración de los ajustes, y queda preparado en pausa (RF-03, D-08).
 - `stopBreakPhase`:
   - Crea un estudio nuevo y pausado con la duración de los ajustes (D-02).
   - Vacía el descanso (`createBreakTimer`).
@@ -47,8 +47,8 @@ stopBreakPhase(cycle, breakType, focusDurationMs)
     resultado = stopFocusPhase(focusTimer, cycle, ajustes.shortBreakMinutes, now)
     si resultado es null -> sin cambios      (fase no iniciada o ya terminó: el tick aplica el fin normal, RF-09)
     devolver estado con resultado,
-        expiresAtEpochMs = nowEpochMs + breakTimer.remainingMs
-        notificationId   = null              (el efecto existente cancela el aviso viejo y programa el nuevo, RF-08)
+        expiresAtEpochMs = null
+        notificationId   = null              (el efecto existente cancela el aviso del estudio, RF-08)
         isAlarmActive / alarmPhase sin cambios (no suena la alarma, D-06)
         canPersistSession = true
 
@@ -116,3 +116,8 @@ La navegación ya existe:
 | RF-09 | Reconciliación con `now` antes de detener |
 | RNF-01 | Sesión guardada con el formato actual; restauración de HU-003 |
 | RNF-02 | `Alert.alert` en español con opción de cancelar |
+
+## Cambio tras la verificación (D-08)
+
+- `stopFocusPhase` deja el descanso corto preparado y en pausa (`createPreparedBreakTimer`), sin `startTimer`.
+- La acción `stop-focus` deja `expiresAtEpochMs = null`: no hay fase corriendo, así que no se programa aviso; el aviso del descanso se programa cuando el estudiante lo inicia.

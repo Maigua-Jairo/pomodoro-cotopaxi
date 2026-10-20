@@ -41,3 +41,9 @@
 - **Pregunta:** Si la fase llega a cero mientras el diálogo de «Detener» está abierto, ¿qué prevalece?
 - **Respuesta:** El fin normal de la fase: suena la alarma y la fase siguiente queda preparada según HU-002 y HU-004. Confirmar «Detener» después ya no tiene efecto.
 - **Motivo:** Respetar el comportamiento al llegar a cero que ya funciona y no aplicar una acción sobre una fase que ya terminó.
+
+## D-08: Estado del descanso al detener el estudio
+
+- **Pregunta:** Al confirmar «Detener» en el estudio, ¿el descanso corto empieza a correr solo?
+- **Respuesta:** No. Se muestra el descanso corto preparado y en pausa; el estudiante lo inicia cuando quiera. Sustituye la parte de D-01 y de la HU que decía que se iniciaba automáticamente.
+- **Motivo:** Decisión del usuario tras probar la función: mantener el mismo comportamiento que el resto de transiciones (HU-002), sin iniciar fases automáticamente.

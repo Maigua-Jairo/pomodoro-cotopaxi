@@ -53,18 +53,17 @@ describe('stopping a phase', () => {
     notificationId: 'focus-notification',
   };
 
-  it('starts a short break without the alarm and reschedules its notice', () => {
+  it('prepares a paused short break without the alarm and cancels the study notice', () => {
     const next = pomodoroTimerReducer(studying, {
       type: 'stop-focus',
-      now: 5 * MINUTE,
-      nowEpochMs: 2_000_000,
+      now: 5 * MINUTE
     });
 
     expect(next.breakType).toBe('short');
-    expect(next.breakTimer).toEqual(startTimer(createPreparedBreakTimer(5), 5 * MINUTE));
+    expect(next.breakTimer).toEqual(createPreparedBreakTimer(5));
     expect(next.focusTimer.status).toBe('finished');
     expect(next.cycle.pomodoroCount).toBe(0);
-    expect(next.expiresAtEpochMs).toBe(2_000_000 + 5 * MINUTE);
+    expect(next.expiresAtEpochMs).toBeNull();
     expect(next.notificationId).toBeNull();
     expect(next.isAlarmActive).toBe(false);
     expect(next.canPersistSession).toBe(true);
@@ -72,22 +71,21 @@ describe('stopping a phase', () => {
 
   it('does nothing when the study already ran out while the dialog was open', () => {
     expect(
-      pomodoroTimerReducer(studying, { type: 'stop-focus', now: 25 * MINUTE, nowEpochMs: 0 }),
+      pomodoroTimerReducer(studying, { type: 'stop-focus', now: 25 * MINUTE }),
     ).toBe(studying);
   });
 
   it('does nothing for a study that was not started', () => {
-    expect(pomodoroTimerReducer(hydrated, { type: 'stop-focus', now: 0, nowEpochMs: 0 })).toBe(
+    expect(pomodoroTimerReducer(hydrated, { type: 'stop-focus', now: 0 })).toBe(
       hydrated,
     );
   });
 
   it('returns to a prepared study without the alarm when a break is stopped', () => {
-    const onBreak = pomodoroTimerReducer(studying, {
-      type: 'stop-focus',
-      now: 5 * MINUTE,
-      nowEpochMs: 2_000_000,
-    });
+    const onBreak = pomodoroTimerReducer(
+      pomodoroTimerReducer(studying, { type: 'stop-focus', now: 5 * MINUTE }),
+      { type: 'start-break', now: 5 * MINUTE, expiresAtEpochMs: 2_000_000 },
+    );
     const next = pomodoroTimerReducer(onBreak, { type: 'stop-break', now: 6 * MINUTE });
 
     expect(next.breakType).toBeNull();
@@ -99,11 +97,10 @@ describe('stopping a phase', () => {
   });
 
   it('does nothing when the break already ran out', () => {
-    const onBreak = pomodoroTimerReducer(studying, {
-      type: 'stop-focus',
-      now: 5 * MINUTE,
-      nowEpochMs: 2_000_000,
-    });
+    const onBreak = pomodoroTimerReducer(
+      pomodoroTimerReducer(studying, { type: 'stop-focus', now: 5 * MINUTE }),
+      { type: 'start-break', now: 5 * MINUTE, expiresAtEpochMs: 2_000_000 },
+    );
     expect(pomodoroTimerReducer(onBreak, { type: 'stop-break', now: 10 * MINUTE })).toBe(onBreak);
   });
 });

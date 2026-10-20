@@ -134,27 +134,11 @@ function PomodoroAlarmOverlay() {
   );
 }
 
-function NotificationAvailabilityBanner() {
-  const { notificationMessage } = usePomodoroTimer();
-  if (notificationMessage === null) {
-    return null;
-  }
-
-  return (
-    <View pointerEvents="none" style={styles.availabilityBanner}>
-      <Text accessibilityLiveRegion="polite" style={styles.availabilityMessage}>
-        {notificationMessage}
-      </Text>
-    </View>
-  );
-}
-
 export default function RootLayout() {
   return (
     <PomodoroTimerProvider>
       <NotificationNavigationHandler />
       <PomodoroAlarmOverlay />
-      <NotificationAvailabilityBanner />
       <Stack screenOptions={{ headerShown: false }} />
     </PomodoroTimerProvider>
   );
@@ -171,24 +155,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(16, 0, 72, 0.52)',
-  },
-  availabilityBanner: {
-    position: 'absolute',
-    top: 52,
-    left: 16,
-    right: 16,
-    zIndex: 40,
-    elevation: 40,
-    borderRadius: 12,
-    backgroundColor: '#e60023',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  availabilityMessage: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   alarmCard: {
     width: '84%',

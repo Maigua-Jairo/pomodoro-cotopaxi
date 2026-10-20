@@ -128,7 +128,7 @@ export type PomodoroTimerAction =
   | { type: 'start-focus'; now: number; expiresAtEpochMs: number }
   | { type: 'pause-focus'; now: number }
   | { type: 'reset-focus' }
-  | { type: 'stop-focus'; now: number; nowEpochMs: number }
+  | { type: 'stop-focus'; now: number }
   | { type: 'stop-break'; now: number }
   | { type: 'start-break'; now: number; expiresAtEpochMs: number }
   | { type: 'pause-break'; now: number }
@@ -397,7 +397,7 @@ export function pomodoroTimerReducer(
         ...state,
         ...stopped,
         canPersistSession: true,
-        expiresAtEpochMs: action.nowEpochMs + stopped.breakTimer.remainingMs,
+        expiresAtEpochMs: null,
         notificationId: null,
       };
     }
@@ -812,7 +812,7 @@ export function PomodoroTimerProvider({ children }: PropsWithChildren) {
   }, []);
 
   const stopFocus = useCallback(() => {
-    dispatch({ type: 'stop-focus', now: performance.now(), nowEpochMs: Date.now() });
+    dispatch({ type: 'stop-focus', now: performance.now() });
   }, []);
 
   const stopBreak = useCallback(() => {
